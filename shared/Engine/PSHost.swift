@@ -1,8 +1,8 @@
 import Foundation
 
-/// The paired PS5: what registration returned plus where it was last seen. Saved to
-/// ~/.config/ps5_remote_control/host.json with mode 0600, because the keys let anyone on the LAN
-/// control the console.
+/// The paired PS5: what registration returned plus where it was last seen. The keys let anyone on the LAN
+/// control the console, so they are kept in `PSHostStorage.current`: a 0600 file on the Mac
+/// (~/.config/ps5_remote_control/host.json) and the Keychain, this device only, on the iPhone.
 struct PSHost: Codable, Equatable {
     var hostID: String            // discovery "host-id", stable across IP changes
     var nickname: String          // console name, e.g. "PS5-123"
@@ -22,31 +22,28 @@ struct PSHost: Codable, Equatable {
         if let dir = ProcessInfo.processInfo.environment["PS5_CONFIG_DIR"], !dir.isEmpty {
             return URL(fileURLWithPath: dir).appendingPathComponent("host.json")
         }
-        return FileManager.default.homeDirectoryForCurrentUser
+        return URL(fileURLWithPath: NSHomeDirectory())
             .appendingPathComponent(".config/ps5_remote_control/host.json")
     }
 
-    static func load() -> PSHost? {
-        guard let data = try? Data(contentsOf: fileURL) else { return nil }
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return try? decoder.decode(PSHost.self, from: data)
-    }
+    static func load() -> PSHost? { PSHostStorage.current.load() }
 
-    func save() throws {
+    func save() throws { try PSHostStorage.current.save(self) }
+
+    static func forget() { PSHostStorage.current.forget() }
+
+    /// The JSON form both stores keep.
+    func encodedJSON() throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
-        let data = try encoder.encode(self)
-        let directory = Self.fileURL.deletingLastPathComponent()
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
-                                                attributes: [.posixPermissions: 0o700])
-        try data.write(to: Self.fileURL, options: .atomic)
-        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: Self.fileURL.path)
+        return try encoder.encode(self)
     }
 
-    static func forget() {
-        try? FileManager.default.removeItem(at: fileURL)
+    static func decode(json data: Data) -> PSHost? {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try? decoder.decode(PSHost.self, from: data)
     }
 
     // MARK: Values in the form the library wants
@@ -93,5 +90,41 @@ struct PSHost: Codable, Equatable {
                   accountID: accountID,
                   consolePin: host.console_pin != 0 ? String(host.console_pin) : nil,
                   systemVersion: systemVersion)
+    }
+}
+
+// MARK: - Where the pairing lives
+
+/// Storage for the pairing. The Mac app and `ps5ctl` use the file store (the default); the iPhone app installs
+/// a Keychain store before anything else runs.
+protocol PSHostStoring {
+    func load() -> PSHost?
+    func save(_ host: PSHost) throws
+    func forget()
+}
+
+enum PSHostStorage {
+    /// Set once at launch, before any other thread reads it.
+    nonisolated(unsafe) static var current: PSHostStoring = FileHostStore()
+}
+
+/// `PSHost.fileURL`, mode 0600 in a 0700 folder.
+struct FileHostStore: PSHostStoring {
+    func load() -> PSHost? {
+        guard let data = try? Data(contentsOf: PSHost.fileURL) else { return nil }
+        return PSHost.decode(json: data)
+    }
+
+    func save(_ host: PSHost) throws {
+        let data = try host.encodedJSON()
+        let directory = PSHost.fileURL.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
+                                                attributes: [.posixPermissions: 0o700])
+        try data.write(to: PSHost.fileURL, options: .atomic)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: PSHost.fileURL.path)
+    }
+
+    func forget() {
+        try? FileManager.default.removeItem(at: PSHost.fileURL)
     }
 }

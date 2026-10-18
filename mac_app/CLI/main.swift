@@ -13,7 +13,8 @@ struct PS5Ctl {
     Uso: ps5ctl [-v] [--host IP] COMANDO [opções]
 
     Comandos
-      discover [--timeout S]            Procura consoles na rede (padrão 2 s)
+      discover [--timeout S] [--no-direct]
+                                        Procura consoles na rede (padrão 2 s). --no-direct ignora o endereço salvo
       status                            Estado do console pareado (ligado, repouso, app aberto)
       account-id [--url URL | --code C] ID da conta PSN: abre o login da Sony e converte o código
       pair --pin 12345678 [--account-id B64]
@@ -32,6 +33,8 @@ struct PS5Ctl {
       forget                            Apaga o pareamento salvo
 
     Opção global --ds4: anuncia o cliente como DualShock 4 em vez de DualSense (para comparar).
+    Opção global --no-broadcast: descoberta como a do iPhone, sem broadcast: pergunta ao endereço salvo e, se
+    ele ficar em silêncio por 1 s, a cada endereço da sub-rede, um por um.
 
     Botões: cross(x, ok) circle(o, back) square triangle up down left right
             l1 r1 l2 r2 l3 r3 options create(share) touchpad ps(home)
@@ -50,6 +53,8 @@ struct PS5Ctl {
                 verbose = true
             } else if arg == "--ds4" {
                 announceAsDualSense = false
+            } else if arg == "--no-broadcast" {
+                PSDiscovery.policy = PSDiscoveryPolicy(broadcast: false, sweepAfter: 1.0)
             } else if arg == "--host", index + 1 < args.count {
                 hostOverride = args[index + 1]
                 index += 1
@@ -101,14 +106,17 @@ struct PS5Ctl {
 
     static func discover(_ options: [String], log: ChiakiLogger) throws {
         let timeout = TimeInterval(value(of: "--timeout", in: options) ?? "2") ?? 2
-        let saved = PSHost.load()
+        let saved = options.contains("--no-direct") ? nil : PSHost.load()
         print("Procurando consoles (\(formatSeconds(timeout)))...")
         let hosts = try PSDiscovery.scan(timeout: timeout, directHost: saved?.lastAddress, log: log)
         if hosts.isEmpty {
             print("Nenhum console respondeu. O PS5 está ligado (ou em repouso com a rede ativa) e na mesma rede?")
             return
         }
-        for host in hosts { print(describe(host)) }
+        for host in hosts {
+            print(describe(host))
+            print("  respondeu \(formatSeconds(host.answeredAfter)) depois da primeira sondagem")
+        }
     }
 
     static func status(hostOverride: String?, log: ChiakiLogger) throws {
