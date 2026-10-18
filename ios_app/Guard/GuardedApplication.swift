@@ -7,6 +7,8 @@ import UIKit
 final class GuardedApplication: UIApplication {
     /// Key presses dropped so far; the tests read it.
     private(set) static var droppedPresses = 0
+    /// Every event that reached the app, by type, so a test can tell "no key arrived" from "keys were dropped".
+    private(set) static var eventsSeen: [UIEvent.EventType: Int] = [:]
     /// True only inside the screens that collect text and send nothing to the console.
     static var allowsKeyboardEntry = false
 
@@ -15,13 +17,19 @@ final class GuardedApplication: UIApplication {
     private(set) static var currentEventType: UIEvent.EventType?
     static var cameFromKeyboard: Bool { currentEventType == .presses }
 
+    /// Self-test only: sees each dispatched event and returns true to consume it (synthetic key events must not
+    /// reach UIKit's own machinery).
+    static var testHook: ((UIEvent) -> Bool)?
+
     override func sendEvent(_ event: UIEvent) {
+        Self.eventsSeen[event.type, default: 0] += 1
         if event.type == .presses, !Self.allowsKeyboardEntry {
             Self.droppedPresses += 1
             return
         }
         Self.currentEventType = event.type
         defer { Self.currentEventType = nil }
+        if let hook = Self.testHook, hook(event) { return }
         super.sendEvent(event)
     }
 }

@@ -61,7 +61,7 @@ struct DiagnosticView: View {
             var rounds = 0
             while found == nil, Date().timeIntervalSince(started) < 30 {
                 rounds += 1
-                found = try? PSDiscovery.find(hostID: saved?.hostID, lastAddress: direct, timeout: 3, log: logger)
+                found = try? PSDiscovery.find(hostID: saved?.hostID, lastAddress: direct, timeout: 3, forceSweep: true, log: logger)
             }
             let elapsed = Date().timeIntervalSince(started)
             await MainActor.run {

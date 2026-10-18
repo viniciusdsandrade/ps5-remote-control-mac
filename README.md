@@ -41,6 +41,28 @@ O volume, o mudo e o "Ligar tudo" pela TV vêm de um projeto irmão de controle 
 deste repositório). Se ele estiver ao lado deste (ou em `LG_ROAP_CONTROL_DIR`), o app compila com a TV; se não,
 compila com `mac_app/TVStub` e funciona só com o PS5.
 
+## App do iPhone (em desenvolvimento)
+
+O mesmo controle no iPhone, com o mesmo motor (`shared/`). Só para instalação pessoal pelo Xcode: a licença
+AGPL do chiaki-ng não convive com os termos da App Store, e com uma conta Apple gratuita cada instalação vale
+7 dias (e cabem três apps assim por aparelho).
+
+```bash
+brew install xcodegen
+cp ios_app/Local.xcconfig.example ios_app/Local.xcconfig   # Team ID e bundle id próprios (ficam fora do Git)
+scripts/build_chiaki_ios.sh                                # a libchiaki para iPhone e Simulador (XCFramework)
+scripts/build_ios.sh simulator                             # compila para o Simulador
+scripts/build_ios.sh install --launch                      # compila, assina, instala e abre no iPhone
+```
+
+Diferenças em relação ao Mac, todas pelas regras de rede local do iOS (nota técnica TN3179 da Apple):
+- **Sem broadcast.** Mandar broadcast exige uma permissão especial da Apple. O app pergunta ao endereço salvo e,
+  se o console ficar em silêncio, sonda um a um os endereços da sub-rede (no máximo um /24), no máximo uma vez a
+  cada 30 s em segundo plano.
+- **Só em primeiro plano.** Ao sair do app ou bloquear a tela, a sessão é solta; o primeiro toque reabre.
+- **Pareamento no Keychain**, só neste aparelho (não sincroniza pelo iCloud).
+- **Só toque.** Um teclado físico nunca comanda nada (`ios_app/Guard`).
+
 ## Parear (uma vez)
 
 No app, o assistente guia o processo. Pela linha de comando:
@@ -106,7 +128,9 @@ shared/Engine/       motor sem interface (usado pelos apps): descoberta, acordar
 shared/Theater/      HomeTheater: modos de clique, rota CEC, "Ligar tudo" e "Desligar tudo"
 mac_app/CLI/         ps5ctl
 mac_app/UI/          app SwiftUI, trava de teclado (InputGuard) e autotestes (teclado e ao vivo)
-mac_app/Icon/        make_icon.swift: o ícone (um DualSense) desenhado em código; o build gera o .icns
+mac_app/Icon/        make_icon.swift: o ícone (um DualSense) desenhado em código; o build gera o .icns (Mac) e o PNG do iPhone
+shared/UI/           o desenho do DualSense em SwiftUI, usado pelos dois apps
+ios_app/             app do iPhone: project.yml (XcodeGen), Platform, Guard (só toque), UI e testes
 ```
 
 ## Privacidade

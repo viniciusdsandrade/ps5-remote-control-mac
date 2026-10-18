@@ -10,7 +10,9 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         PSHostStorage.current = KeychainHostStore(service: service)
         // iOS only lets an app send broadcast with an entitlement from Apple: ask the saved address first and,
         // if it stays silent, probe the local subnet address by address (unicast).
-        PSDiscovery.policy = PSDiscoveryPolicy(broadcast: false, sweepAfter: 1.0)
+        PSDiscovery.policy = PSDiscoveryPolicy(broadcast: false, sweepAfter: 1.0, sweepMinInterval: 30)
+        Haptics.install()
+        if UITestMode.isOn { UITestMode.installSyntheticPairing() }
         return true
     }
 }
@@ -21,7 +23,16 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
         let window = UIWindow(windowScene: windowScene)
-        window.rootViewController = UIHostingController(rootView: DiagnosticView())
+        let ps5 = PS5Controller()
+        // Third layer of "touch only": a command refuses to run when the event that started it was a key press.
+        ps5.inputGate = { !GuardedApplication.cameFromKeyboard }
+        let theater = HomeTheater(ps5: ps5, tv: LGTVClient())
+        if UITestMode.isOn { ps5.dryRun = true; theater.dryRun = true }
+        window.rootViewController = UIHostingController(rootView: RootView(theater: theater))
+        if CommandLine.arguments.contains("-ps5-selftest-input") {
+            // Needs the test mode (dry run, made-up pairing); runs once the first screen is up.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { InputSelfTest.run(theater: theater) }
+        }
         window.makeKeyAndVisible()
         self.window = window
     }

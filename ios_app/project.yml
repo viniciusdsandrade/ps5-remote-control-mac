@@ -21,7 +21,24 @@ settings:
     TARGETED_DEVICE_FAMILY: "1"
     ARCHS: arm64                  # a biblioteca é só arm64 (iPhone e Simulador em Mac com Apple Silicon)
     EXCLUDED_ARCHS: x86_64
+schemes:
+  ControlePS5:
+    build:
+      targets:
+        ControlePS5: all
+    test:
+      targets: [ControlePS5UITests]
 targets:
+  ControlePS5UITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [Tests/UI]
+    dependencies:
+      - target: ControlePS5
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(PS5_BUNDLE_ID).uitests
+        GENERATE_INFOPLIST_FILE: YES
   ControlePS5:
     type: application
     platform: iOS
@@ -32,6 +49,7 @@ targets:
       - Assets.xcassets             # gerado por scripts/build_ios.sh (ícone), fora do Git
       - path: ../shared/Engine
       - path: ../shared/Theater
+      - path: ../shared/UI
       - path: ../mac_app/TVStub     # até a Fase 3: o código da TV ainda não roda no iOS
     dependencies:
       - framework: ../build/ios/ChiakiLib.xcframework
