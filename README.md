@@ -105,6 +105,7 @@ mac_app/CChiaki/     bridging header da biblioteca
 mac_app/Engine/      motor sem interface: descoberta, acordar, pareamento, sessão, estado do controle
 mac_app/CLI/         ps5ctl
 mac_app/UI/          app SwiftUI, trava de teclado (InputGuard) e autotestes (teclado e ao vivo)
+mac_app/Icon/        make_icon.swift: o ícone (um DualSense) desenhado em código; o build gera o .icns
 ```
 
 ## Privacidade
