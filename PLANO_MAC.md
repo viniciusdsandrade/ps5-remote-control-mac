@@ -152,7 +152,7 @@ ps5-remote-control/
 │   └── build_app.sh            ← swiftc + bundle + codesign ad-hoc + ~/Applications (mesmo molde do app da TV)
 └── mac_app/
     ├── CChiaki/                ← bridging header + um shim C pequeno (estruturas e callbacks)
-    ├── Engine/                 ← sem SwiftUI: PSDiscovery, PSWake, PSRegistration, PSNAccountID,
+    ├── (Engine: hoje em shared/Engine) ← sem SwiftUI: PSDiscovery, PSWake, PSRegistration, PSNAccountID,
     │                             PSSession, PadState, HostStore, CECRoute
     ├── UI/                     ← SwiftUI: PS5RemoteView, DualSensePad, PairingView, SettingsView, MenuBar, KeyMap
     └── AppMain.swift

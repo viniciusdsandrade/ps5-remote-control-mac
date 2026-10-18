@@ -102,7 +102,8 @@ vendor/chiaki-ng/    biblioteca (submódulo em commit fixo)
 scripts/             build_chiaki, build_ps5ctl, build_app, lib_variant
 tools/               ps_discover.py (sondagem), contact_sheet.sh, contact_grid.sh, cc_toggle_test.sh, seq_test.sh, ab_test.sh
 mac_app/CChiaki/     bridging header da biblioteca
-mac_app/Engine/      motor sem interface: descoberta, acordar, pareamento, sessão, estado do controle
+shared/Engine/       motor sem interface (usado pelos apps): descoberta, acordar, pareamento, sessão, estado do controle
+shared/Theater/      HomeTheater: modos de clique, rota CEC, "Ligar tudo" e "Desligar tudo"
 mac_app/CLI/         ps5ctl
 mac_app/UI/          app SwiftUI, trava de teclado (InputGuard) e autotestes (teclado e ao vivo)
 mac_app/Icon/        make_icon.swift: o ícone (um DualSense) desenhado em código; o build gera o .icns

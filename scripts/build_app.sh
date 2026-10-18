@@ -33,7 +33,8 @@ swiftc -O -parse-as-library \
   -import-objc-header "$MAC_APP/CChiaki/chiaki-bridge.h" \
   -I "$CHIAKI_SRC/lib/include" \
   -I "$CHIAKI_BUILD/lib/include" \
-  "$MAC_APP"/Engine/*.swift \
+  "$PROJECT_DIR"/shared/Engine/*.swift \
+  "$PROJECT_DIR"/shared/Theater/*.swift \
   "$MAC_APP"/UI/*.swift \
   "${TV_SOURCES[@]}" \
   "$CHIAKI_BUILD/libchiaki_all.a" \

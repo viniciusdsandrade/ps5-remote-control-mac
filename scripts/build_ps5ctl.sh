@@ -16,7 +16,7 @@ swiftc -O -parse-as-library \
   -import-objc-header "$MAC_APP/CChiaki/chiaki-bridge.h" \
   -I "$CHIAKI_SRC/lib/include" \
   -I "$CHIAKI_BUILD/lib/include" \
-  "$MAC_APP"/Engine/*.swift \
+  "$PROJECT_DIR"/shared/Engine/*.swift \
   "$MAC_APP"/CLI/*.swift \
   "$CHIAKI_BUILD/libchiaki_all.a" \
   -framework CoreServices -framework SystemConfiguration -lz \
