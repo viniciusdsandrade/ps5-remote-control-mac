@@ -46,13 +46,17 @@ else
   echo "ok     ID de conta PSN (base64 de 8 bytes)"
 fi
 
-bad_files=$(printf '%s\n' "${files[@]}" | grep -i -E '\.(png|jpe?g|heic|gif|mov|mp4|h264)$|(^|/)(host|androidtv|config)\.json$|\.env$|\.jks$' || true)
+check "Team ID da Apple escrito no projeto (use \$(PS5_TEAM_ID), do Local.xcconfig)" \
+  'DEVELOPMENT_TEAM[ :=]+"?[A-Z0-9]{10}'
+check "identificador de aparelho Apple (UDID)" '[0-9A-Fa-f]{8}-[0-9A-Fa-f]{16}'
+
+bad_files=$(printf '%s\n' "${files[@]}" | grep -i -E '\.(png|jpe?g|heic|gif|mov|mp4|h264|mobileprovision|p12|cer|xcuserstate)$|(^|/)(host|androidtv|config)\.json$|(^|/)Local\.xcconfig$|xcuserdata|\.env$|\.jks$' || true)
 if [[ -n "$bad_files" ]]; then
-  echo "FALHA  imagens, vídeos ou arquivos de pareamento no repositório"
+  echo "FALHA  imagens, vídeos, perfis de assinatura ou arquivos de pareamento no repositório"
   sed 's/^/         /' <<< "$bad_files"
   fail=1
 else
-  echo "ok     sem imagens, vídeos ou arquivos de pareamento"
+  echo "ok     sem imagens, vídeos, perfis de assinatura ou arquivos de pareamento"
 fi
 
 if git rev-parse --verify -q HEAD > /dev/null; then
