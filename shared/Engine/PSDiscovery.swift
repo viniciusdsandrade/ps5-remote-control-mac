@@ -39,6 +39,9 @@ struct PSDiscoveryPolicy {
     /// Seconds of silence (no console that matches) before probing every address of the local subnets.
     /// nil: never; 0: from the first round.
     var sweepAfter: TimeInterval? = nil
+    /// At most one sweep per this many seconds (background polling must not probe 254 addresses every few
+    /// seconds). Searches the user asks for (`forceSweep`) ignore it.
+    var sweepMinInterval: TimeInterval = 0
 }
 
 /// One-shot discovery: sends the SRCH packet (to the broadcast address, to a known address and, per the policy,
@@ -47,6 +50,17 @@ struct PSDiscoveryPolicy {
 enum PSDiscovery {
     /// Set once at launch, before any other thread reads it.
     nonisolated(unsafe) static var policy = PSDiscoveryPolicy()
+
+    private static let sweepLock = NSLock()
+    nonisolated(unsafe) private static var lastSweepAt: Date?
+
+    /// True when a sweep may start now; records it when it does.
+    private static func claimSweep(force: Bool) -> Bool {
+        sweepLock.lock(); defer { sweepLock.unlock() }
+        if !force, let last = lastSweepAt, Date().timeIntervalSince(last) < policy.sweepMinInterval { return false }
+        lastSweepAt = Date()
+        return true
+    }
 
     private final class Collector {
         let lock = NSLock()
@@ -58,7 +72,7 @@ enum PSDiscovery {
 
     /// `wantedHostID` is the console the caller is after (nil: any PS5); it decides whether the sweep is needed.
     static func scan(timeout: TimeInterval = 2.0, directHost: String? = nil, wantedHostID: String? = nil,
-                     log: ChiakiLogger) throws -> [PSDiscoveredHost] {
+                     forceSweep: Bool = false, log: ChiakiLogger) throws -> [PSDiscoveredHost] {
         ChiakiCore.ensureInitialized()
 
         let discovery = UnsafeMutablePointer<ChiakiDiscovery>.allocate(capacity: 1)
@@ -120,7 +134,7 @@ enum PSDiscovery {
                     isUsableAddress(host.address) && (wantedHostID.map { host.hostID == $0 } ?? host.isPS5)
                 }
                 collector.lock.unlock()
-                if !answered { sweep = localSubnetAddresses().filter { !targets.contains($0) } }
+                if !answered, claimSweep(force: forceSweep) { sweep = localSubnetAddresses().filter { !targets.contains($0) } }
             }
             for target in targets + sweep { send(discovery, &packet, to: target, port: ps5Port) }
             Thread.sleep(forTimeInterval: min(0.5, max(0.05, deadline.timeIntervalSinceNow)))
@@ -141,8 +155,9 @@ enum PSDiscovery {
 
     /// Finds one console: the one with that host-id when it is known (never another console, even if
     /// it is the only one that answers), otherwise the first PS5 that answers (the pairing flow).
-    static func find(hostID: String?, lastAddress: String?, timeout: TimeInterval = 2.0, log: ChiakiLogger) throws -> PSDiscoveredHost? {
-        let hosts = try scan(timeout: timeout, directHost: lastAddress, wantedHostID: hostID, log: log)
+    static func find(hostID: String?, lastAddress: String?, timeout: TimeInterval = 2.0, forceSweep: Bool = false,
+                     log: ChiakiLogger) throws -> PSDiscoveredHost? {
+        let hosts = try scan(timeout: timeout, directHost: lastAddress, wantedHostID: hostID, forceSweep: forceSweep, log: log)
         if let hostID { return hosts.first(where: { $0.hostID == hostID }) }
         return hosts.first(where: { $0.isPS5 })
     }

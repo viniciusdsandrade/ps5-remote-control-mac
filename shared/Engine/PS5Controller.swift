@@ -99,6 +99,8 @@ final class PS5Controller: ObservableObject {
     private var sendChain: Task<Void, Never>?
     private var connectContinuation: CheckedContinuation<Result<Void, Error>, Never>?
     private var lastDisconnect: Date?
+    /// iOS: the app is out of the foreground. No session may open and nothing is polled until `resume()`.
+    private var suspended = false
 
     static let videoAppKeywords = ["netflix", "youtube", "prime video", "disney", "max", "globoplay", "crunchyroll",
                                    "spotify", "apple tv", "plex", "twitch", "paramount", "star+", "hbo", "deezer",
@@ -213,7 +215,7 @@ final class PS5Controller: ObservableObject {
     func perform(_ action: PadAction) {
         guard inputGate() else { return }
         acceptedCommands += 1
-        guard host != nil, !dryRun else { return }
+        guard host != nil, !dryRun, !suspended else { return }
         if link == .connected, session != nil {
             apply(action)
             scheduleIdle(afterCross: action == .tap(.cross))
@@ -292,14 +294,21 @@ final class PS5Controller: ObservableObject {
                 return
             }
         }
+        guard !suspended else { return }
         await waitCooldown()
 
         var attempt = 0
         while true {
+            guard !suspended else { queue.removeAll(); return }
             attempt += 1
             link = .connecting
             switch await openSession() {
             case .success:
+                if suspended {   // the app left the foreground while the session was opening
+                    queue.removeAll()
+                    await disconnect()
+                    return
+                }
                 link = .connected
                 lastError = nil
                 await flushQueue()
@@ -437,6 +446,23 @@ final class PS5Controller: ObservableObject {
             guard !Task.isCancelled, let self, self.pressed.isEmpty else { return }
             await self.disconnect()
         }
+    }
+
+    /// iOS: the app is leaving the foreground (screen locked, another app). Lets the session go cleanly, drops
+    /// what was queued and stops polling; the minimum gap counts from now. Nothing comes back by itself:
+    /// the next tap opens a session again.
+    func suspend() async {
+        suspended = true
+        discoveryTask?.cancel()
+        discoveryTask = nil
+        queue.removeAll()
+        await disconnect()
+    }
+
+    /// iOS: the app is in the foreground again.
+    func resume() {
+        suspended = false
+        if discoveryTask == nil { startDiscovery() }
     }
 
     /// Ends the session and waits for the library threads. The console then needs the minimum gap
