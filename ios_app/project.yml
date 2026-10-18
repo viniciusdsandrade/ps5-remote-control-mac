@@ -1,0 +1,64 @@
+# Projeto do app do iPhone, gerado pelo XcodeGen (brew install xcodegen): scripts/build_ios.sh roda `xcodegen`.
+# O .xcodeproj e o Info.plist gerados ficam fora do Git. Team ID e bundle id vêm do Local.xcconfig, que também
+# fica fora do Git (modelo em Local.xcconfig.example).
+name: ControlePS5
+options:
+  minimumXcodeGenVersion: 2.40.0
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "18.0"
+configs:
+  Debug: debug
+  Release: release
+configFiles:
+  Debug: Local.xcconfig
+  Release: Local.xcconfig
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: $(PS5_TEAM_ID)
+    TARGETED_DEVICE_FAMILY: "1"
+    ARCHS: arm64                  # a biblioteca é só arm64 (iPhone e Simulador em Mac com Apple Silicon)
+    EXCLUDED_ARCHS: x86_64
+targets:
+  ControlePS5:
+    type: application
+    platform: iOS
+    sources:
+      - Platform
+      - Guard
+      - UI
+      - path: ../shared/Engine
+      - path: ../shared/Theater
+      - path: ../mac_app/TVStub     # até a Fase 3: o código da TV ainda não roda no iOS
+    dependencies:
+      - framework: ../build/ios/ChiakiLib.xcframework
+        embed: false
+    settings:
+      base:
+        PRODUCT_NAME: ControlePS5
+        PRODUCT_BUNDLE_IDENTIFIER: $(PS5_BUNDLE_ID)
+        SWIFT_OBJC_BRIDGING_HEADER: $(SRCROOT)/../mac_app/CChiaki/chiaki-bridge.h
+        HEADER_SEARCH_PATHS: $(SRCROOT)/../build/ios/include
+        OTHER_LDFLAGS: [-lz]
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: Info.plist
+        ENABLE_USER_SCRIPT_SANDBOXING: YES
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: Controle PS5
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSRequiresIPhoneOS: true
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+          UISceneConfigurations:
+            UIWindowSceneSessionRoleApplication:
+              - UISceneConfigurationName: Default
+                UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).SceneDelegate
+        NSLocalNetworkUsageDescription: O app conversa com o PS5 (Uso remoto), com a TV LG e com a TV Box, todos na sua rede local.
+        NSHumanReadableCopyright: "Código do protocolo: chiaki-ng (AGPL-3.0)."

@@ -1,3 +1,8 @@
 build/
 .DS_Store
 *.app
+ios_app/Local.xcconfig
+ios_app/*.xcodeproj
+ios_app/Info.plist
+xcuserdata/
+DerivedData/

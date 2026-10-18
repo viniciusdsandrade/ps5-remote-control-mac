@@ -1,0 +1,5 @@
+// Copie para Local.xcconfig (que o Git ignora) e preencha com os seus valores.
+// PS5_TEAM_ID: o Team ID da sua conta Apple (Xcode > Settings > Accounts, ou o perfil de provisionamento).
+// PS5_BUNDLE_ID: um identificador que ninguém mais use, por exemplo com o seu domínio ao contrário.
+PS5_TEAM_ID = XXXXXXXXXX
+PS5_BUNDLE_ID = com.example.ps5remote
