@@ -6,3 +6,4 @@ ios_app/*.xcodeproj
 ios_app/Info.plist
 xcuserdata/
 DerivedData/
+ios_app/Assets.xcassets/

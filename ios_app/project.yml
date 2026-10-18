@@ -29,6 +29,7 @@ targets:
       - Platform
       - Guard
       - UI
+      - Assets.xcassets             # gerado por scripts/build_ios.sh (ícone), fora do Git
       - path: ../shared/Engine
       - path: ../shared/Theater
       - path: ../mac_app/TVStub     # até a Fase 3: o código da TV ainda não roda no iOS
@@ -38,6 +39,7 @@ targets:
     settings:
       base:
         PRODUCT_NAME: ControlePS5
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_BUNDLE_IDENTIFIER: $(PS5_BUNDLE_ID)
         SWIFT_OBJC_BRIDGING_HEADER: $(SRCROOT)/../mac_app/CChiaki/chiaki-bridge.h
         HEADER_SEARCH_PATHS: $(SRCROOT)/../build/ios/include

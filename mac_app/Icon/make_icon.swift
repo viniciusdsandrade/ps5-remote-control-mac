@@ -1,5 +1,6 @@
 // Draws the "Controle PS5" app icon in vector form (CoreGraphics), a white DualSense seen from above, and
 // writes the .iconset. Usage: swift make_icon.swift <out.iconset>  →  iconutil -c icns <out.iconset> -o AppIcon.icns
+// For the iPhone: swift make_icon.swift --ios <out.png> writes the 1024×1024 opaque tile.
 // Design coordinates: a 1024×1024 canvas with the origin at the top left. Only the controller is drawn, with no
 // tile behind it, like the icon of "Controle Remoto LG"; scripts/build_app.sh applies it as a custom icon, which
 // macOS 26 shows as is instead of putting it inside a grey frame.
@@ -123,10 +124,11 @@ func key(_ P: Painter, _ path: CGPath, _ y0: CGFloat, _ y1: CGFloat, top: UInt32
 let triangleColor = hex(0x4DCC8C), circleColor = hex(0xF56B6B), crossColor = hex(0x7AA8F7), squareColor = hex(0xF285BD)
 let lightBar = hex(0x3D8BFF)
 
-func drawController(_ P: Painter) {
-    // 92% of the canvas, centred: the margin keeps it the same visual size as its neighbours in the Dock.
+func drawController(_ P: Painter, scale: CGFloat = 0.92) {
+    // 92% of the canvas on the Mac, centred: the margin keeps it the same visual size as its neighbours in the
+    // Dock. On iOS the controller sits on a tile and gets more room around it.
     P.ctx.translateBy(x: 512, y: 512)
-    P.ctx.scaleBy(x: 0.92, y: 0.92)
+    P.ctx.scaleBy(x: scale, y: scale)
     P.ctx.translateBy(x: -512, y: -538)
 
     // Outline, right half: top edge rising a little towards R1, shoulder, outer side, grip down to its round tip,
@@ -255,15 +257,29 @@ func drawController(_ P: Painter) {
     }
 }
 
+/// iOS tile: iOS wants an opaque square and rounds the corners itself. Deep graphite blue with a soft light from
+/// the top, so the white controller stands out and the light bar picks up the blue.
+func drawTile(_ P: Painter) {
+    let tile = CGPath(rect: CGRect(x: 0, y: 0, width: 1024, height: 1024), transform: nil)
+    P.fill(tile, grad([(0, hex(0x2A3556)), (0.55, hex(0x182036)), (1, hex(0x0C101C))]), 0, 1024)
+    P.fillRadial(tile, grad([(0, hex(0x5B78C8, 0.55)), (1, hex(0x5B78C8, 0))]), pt(512, 260), 760)
+}
+
 // MARK: - Output
 
-func render(_ size: Int) -> CGImage {
+func render(_ size: Int, tile: Bool = false) -> CGImage {
     let ctx = CGContext(data: nil, width: size, height: size, bitsPerComponent: 8, bytesPerRow: 0, space: sRGB,
-                        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+                        bitmapInfo: (tile ? CGImageAlphaInfo.noneSkipLast : CGImageAlphaInfo.premultipliedLast).rawValue)!
     let k = CGFloat(size) / 1024
     ctx.translateBy(x: 0, y: CGFloat(size))
     ctx.scaleBy(x: k, y: -k)
-    drawController(Painter(ctx: ctx, k: k, detail: size >= 128 ? 2 : (size >= 64 ? 1 : 0)))
+    let painter = Painter(ctx: ctx, k: k, detail: size >= 128 ? 2 : (size >= 64 ? 1 : 0))
+    if tile {
+        drawTile(painter)
+        drawController(painter, scale: 0.78)
+    } else {
+        drawController(painter)
+    }
     return ctx.makeImage()!
 }
 
@@ -271,6 +287,13 @@ func writePNG(_ image: CGImage, _ path: String) {
     let dest = CGImageDestinationCreateWithURL(URL(fileURLWithPath: path) as CFURL, "public.png" as CFString, 1, nil)!
     CGImageDestinationAddImage(dest, image, nil)
     guard CGImageDestinationFinalize(dest) else { fatalError("could not write \(path)") }
+}
+
+// Usage for iOS: swift make_icon.swift --ios <out.png>  (1024×1024, opaque)
+if CommandLine.arguments.count > 2, CommandLine.arguments[1] == "--ios" {
+    writePNG(render(1024, tile: true), CommandLine.arguments[2])
+    print("ícone do iOS gerado em \(CommandLine.arguments[2])")
+    exit(0)
 }
 
 let out = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "AppIcon.iconset"
