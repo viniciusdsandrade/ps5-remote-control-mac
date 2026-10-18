@@ -34,7 +34,17 @@ check "e-mails" \
   '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' 'users\.noreply\.github\.com|@example\.(com|org)|fsf\.org'
 check "pastas de usuário" '/Users/[A-Za-z]|/home/[a-z]'
 check "nome padrão de console (use PS5-123)" 'PS5-[0-9]{3}' 'PS5-123'
-check "ID de conta PSN (base64 de 8 bytes)" '[A-Za-z0-9+/]{11}=' 'AAAAAAAAAAA='
+# ID de conta PSN: base64 de 8 bytes = 11 caracteres e '='. Procura a palavra inteira (letras, números, + / _ e '='),
+# não um trecho de palavra maior como CMAKE_OSX_ARCHITECTURES=. Mostra só arquivo:linha, nunca o valor.
+psn_hits=$(grep -n -I -o -E '[A-Za-z0-9+/_]+=' "${files[@]}" 2>/dev/null \
+  | grep -E ':[A-Za-z0-9+/]{11}=$' | grep -v -F 'AAAAAAAAAAA=' | sed -E 's/:[^:]*$//' || true)
+if [[ -n "$psn_hits" ]]; then
+  echo "FALHA  ID de conta PSN (base64 de 8 bytes)"
+  sed 's/^/         /' <<< "$psn_hits" | head -20
+  fail=1
+else
+  echo "ok     ID de conta PSN (base64 de 8 bytes)"
+fi
 
 bad_files=$(printf '%s\n' "${files[@]}" | grep -i -E '\.(png|jpe?g|heic|gif|mov|mp4|h264)$|(^|/)(host|androidtv|config)\.json$|\.env$|\.jks$' || true)
 if [[ -n "$bad_files" ]]; then
