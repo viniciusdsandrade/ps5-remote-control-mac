@@ -15,6 +15,11 @@ enum PadTheme {
     static let cross = Color(red: 0.48, green: 0.66, blue: 0.97)
 }
 
+/// Hook for physical feedback when a pad key goes down. The iPhone app sets it (Taptic Engine); the Mac leaves it nil.
+enum PadFeedback {
+    nonisolated(unsafe) static var onKeyDown: (() -> Void)?
+}
+
 /// A pad key with real press and release (mouse down and up), so holding works like on the controller.
 struct PadKey: View {
     @EnvironmentObject var theater: HomeTheater
@@ -47,6 +52,7 @@ struct PadKey: View {
                 .onChanged { _ in
                     if !mouseDown {
                         mouseDown = true
+                        PadFeedback.onKeyDown?()
                         theater.keyDown(button)
                     }
                 }

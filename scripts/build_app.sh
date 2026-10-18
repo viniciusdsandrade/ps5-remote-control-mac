@@ -35,6 +35,7 @@ swiftc -O -parse-as-library \
   -I "$CHIAKI_BUILD/lib/include" \
   "$PROJECT_DIR"/shared/Engine/*.swift \
   "$PROJECT_DIR"/shared/Theater/*.swift \
+  "$PROJECT_DIR"/shared/UI/*.swift \
   "$MAC_APP"/UI/*.swift \
   "${TV_SOURCES[@]}" \
   "$CHIAKI_BUILD/libchiaki_all.a" \
